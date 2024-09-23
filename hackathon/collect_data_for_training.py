@@ -5,17 +5,23 @@ import random
 import numpy as np
 import socket
 
-# Initialize socket
-socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#TODO: fix refresh rate
+
+
+# Initialize socket for sending triggers to to unicorn
+socket   = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 endPoint = ("127.0.0.1", 1000)
 
 # Global variables
-win = None  # Global variable for window (Initialized in main)
-fixation = None  # Global variable for fixation cross (Initialized in main)
-bg_color = [0, 0, 0]
-win_w = 800
-win_h = 600
-refresh_rate = 165.0  # Monitor refresh rate (CRITICAL FOR TIMING)
+win          = None  # Global variable for window (Initialized in main)
+fixation     = None  # Global variable for fixation cross (Initialized in main)
+bg_color     = [0, 0, 0]
+win_w        = 800
+win_h        = 600
+refresh_rate = 165.0  # Monitor refresh rate #TODO: update this
+
+# paradigm related vars
+trial_duration = 20*1000  # 20 seconds 
 
 #========================================================
 # High Level Functions
@@ -36,7 +42,7 @@ def Paradigm(trials):
     
     # Initialize text (for instructions & results)
     text = psychopy.visual.TextStim(win,
-                                    'TEST TEXT', font='Open Sans', units='pix',
+                                    'INIT TEXT', font='Open Sans', units='pix',
                                     pos=(0, 0), alignText='center',
                                     height=36, color=[1, 1, 1]
                                     )
@@ -50,7 +56,6 @@ def Paradigm(trials):
         
         # Send trigger and get the trigger value for the condition
         trigger = trigger_dict[trial]
-        socket.sendto(b"%d" % trigger, endPoint)
 
         for frame in range(MsToFrames(1500, refresh_rate)):
             text.draw()
@@ -61,7 +66,8 @@ def Paradigm(trials):
             win.flip()
 
         # 5000ms fixation cross (doing condition - hyperventilation or rest)
-        for frame in range(MsToFrames(5000, refresh_rate)):
+        socket.sendto(b"%d" % trigger, endPoint)
+        for frame in range(MsToFrames(trial_duration, refresh_rate)):
             fixation.draw()
             win.flip()
 
@@ -101,11 +107,12 @@ if __name__ == "__main__":
     # Wait a second for the window to settle down
     time.sleep(1)
 
-    # Define the trials: 10 "normal" and 10 "hyperventilation"
-    trials = ['normal', 'hyperventilation'] * 10
+    # Define the trials: 10 "rest" and 10 "hyperventilation"
+    trials = ['rest','hyperventilation'] * 10
+
+    #
     # Generate a trigger dictionary for conditions
-    trigger_dict = {'normal': 1, 'hyperventilation': 2}
-    random.shuffle(trials)
+    trigger_dict = {'rest': 1, 'hyperventilation': 2}
 
     # Run through paradigm
     Paradigm(trials)
