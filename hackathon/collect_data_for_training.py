@@ -76,7 +76,7 @@ def Paradigm(trials):
             win.flip()
 
         # 1000ms blank screen
-        for frame in range(MsToFrames(1000, refresh_rate)):
+        for frame in range(MsToFrames(5000, refresh_rate)):
             win.flip()
 
         # Send trigger for the end of the trial (trigger 200)
@@ -108,7 +108,9 @@ if __name__ == "__main__":
     time.sleep(1)
 
     # Define the trials: 10 "rest" and 10 "hyperventilation"
-    trials = ['rest','hyperventilation'] * 10
+    trials_rest = ['rest'] * 10
+    trials_hyperventilation = ['hyperventilation'] * 10
+    trials = trials_rest + trials_hyperventilation
 
     #
     # Generate a trigger dictionary for conditions
