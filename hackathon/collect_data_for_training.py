@@ -6,6 +6,8 @@ import numpy as np
 import socket
 
 #TODO: fix refresh rate
+#TODO: dont shuffle rest and hyperventialtion so that its rather blocked, with rest first
+
 
 
 # Initialize socket for sending triggers to to unicorn
