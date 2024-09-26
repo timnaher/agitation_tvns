@@ -5,9 +5,6 @@ import random
 import numpy as np
 import socket
 
-#TODO: fix refresh rate
-#TODO: dont shuffle rest and hyperventialtion so that its rather blocked, with rest first
-
 
 
 # Initialize socket for sending triggers to to unicorn
@@ -50,6 +47,7 @@ def Paradigm(trials):
                                     )
 
     for trial in trials:
+
         # Send trigger for the start of the trial (trigger 100)
         socket.sendto(b"100", endPoint)
         
@@ -58,6 +56,7 @@ def Paradigm(trials):
         
         # Send trigger and get the trigger value for the condition
         trigger = trigger_dict[trial]
+        print(f"Trigger: {trigger}")
 
         for frame in range(MsToFrames(1500, refresh_rate)):
             text.draw()
@@ -110,9 +109,9 @@ if __name__ == "__main__":
     time.sleep(1)
 
     # Define the trials: 10 "rest" and 10 "hyperventilation"
-    trials_rest = ['rest'] * 10
+    #trials_rest = ['rest'] * 10
     trials_hyperventilation = ['hyperventilation'] * 10
-    trials = trials_rest + trials_hyperventilation
+    trials =  trials_hyperventilation
 
     #
     # Generate a trigger dictionary for conditions
