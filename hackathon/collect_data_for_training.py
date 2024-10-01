@@ -25,7 +25,7 @@ trial_duration = 20*1000  # 20 seconds
 #========================================================
 # High Level Functions
 #========================================================
-def Paradigm(trials):
+def Paradigm(trials, trigger_dict):
     # Initialize fixation cross
     fixation = psychopy.visual.ShapeStim(
         win=win,
@@ -46,17 +46,16 @@ def Paradigm(trials):
                                     height=36, color=[1, 1, 1]
                                     )
 
-    for trial in trials:
+    for idx, trial in enumerate(trials):
 
         # Send trigger for the start of the trial (trigger 100)
         socket.sendto(b"100", endPoint)
-        
         # 1000 ms direction instruction (normal or hyperventilation)
         text.text = trial
         
         # Send trigger and get the trigger value for the condition
         trigger = trigger_dict[trial]
-        print(f"Trigger: {trigger}")
+        print(f"#{idx+1}\ttrial | trigger {trigger}\t{trial} ")
 
         for frame in range(MsToFrames(1500, refresh_rate)):
             text.draw()
@@ -97,7 +96,7 @@ if __name__ == "__main__":
     
     # Create PsychoPy window
     win = psychopy.visual.Window(
-        screen=0,
+        screen=1,
         size=[win_w, win_h],
         units="pix",
         fullscr=False,
@@ -109,16 +108,14 @@ if __name__ == "__main__":
     time.sleep(1)
 
     # Define the trials: 10 "rest" and 10 "hyperventilation"
-    #trials_rest = ['rest'] * 10
-    trials_hyperventilation = ['hyperventilation'] * 10
-    trials =  trials_hyperventilation
+    trials = ['rest', 'hyperventilation'] * 10
 
     #
     # Generate a trigger dictionary for conditions
     trigger_dict = {'rest': 1, 'hyperventilation': 2}
 
     # Run through paradigm
-    Paradigm(trials)
+    Paradigm(trials, trigger_dict)
 
     # Close the window
     win.close()
