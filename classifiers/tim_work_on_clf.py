@@ -1,10 +1,5 @@
 #%%
 import numpy as np
-import pylsl
-import time
-
-# this block will got src
-import numpy as np
 from sklearn.model_selection import train_test_split
 import itertools
 import os
@@ -13,7 +8,6 @@ import urllib.request
 
 import numpy as np
 import pandas as pd
-import joblib
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics.pairwise import pairwise_kernels
 from sklearn.pipeline import Pipeline
@@ -23,9 +17,28 @@ from pyriemann.utils.covariance import covariances
 from pyriemann.estimation import Shrinkage
 from pyriemann.classification import SVC
 from pyriemann.utils.covariance import cov_est_functions
+
+#TODO: move models to src
+
+# load the X and y data
+X = np.load('/Users/timnaher/Documents/PhD/Projects/agitation_tvns/data/X.npy', allow_pickle=True)
+y = np.load('/Users/timnaher/Documents/PhD/Projects/agitation_tvns/data/y.npy', allow_pickle=True)
+
+
+# in X, only keep the EEG data
+
+# make a train test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, shuffle=True)
+
+# shape is epochs x time x channels
+
 kernel_functions = [
     "linear", "poly", "polynomial", "rbf", "laplacian", "cosine"
 ]
+
+
+#%% Define some models
+
 class BlockKernels(BaseEstimator, TransformerMixin):
     """Estimation of block kernel or covariance matrices with
     customizable metrics and shrinkage.
@@ -230,62 +243,37 @@ class BlockKernels(BaseEstimator, TransformerMixin):
 
         return blocks
 
-# enf of block
-# load the model at C:\Users\TVN Sleep\Documents\gtec\agitation_tvns\models\model_eeg_acc_gyro.pkl
-model_path = Path("C:/Users/TVN Sleep/Documents/gtec/agitation_tvns/models/model_eeg_acc_gyro.pkl")
-model = joblib.load(model_path)
-
-# Define the stream name
-stream_name = "UnicornRecorderLSLStream"
-
-# Resolve the LSL stream
-print(f"Looking for an LSL stream named '{stream_name}'...")
-streams = pylsl.resolve_byprop('name', stream_name)
-
-if len(streams) == 0:
-    raise RuntimeError(f"No stream with the name '{stream_name}' found.")
-
-# Connect to the stream
-inlet = pylsl.StreamInlet(streams[0])
-info = inlet.info()
-
-# Get information about the stream
-sampling_rate = int(info.nominal_srate())
-num_channels = info.channel_count()
-
-print(f"Connected to stream: {stream_name}")
-print(f"Sampling rate: {sampling_rate} Hz")
-print(f"Number of channels: {num_channels}")
-
-# 1-second buffer size based on the sampling rate
-buffer_size = sampling_rate*2
-
-# Start collecting data in "-second buffers
-try:
-    while True:
-        # Create an empty buffer to store 2 second of data
-        data_buffer = np.zeros((buffer_size, num_channels))
-
-        # Collect data for 2 second
-        for i in range(buffer_size):
-            sample, timestamp = inlet.pull_sample()
-            data_buffer[i, :] = sample
-
-        # After 1 second, the buffer is ready for classification
-        
-        # CLASSIFICATION WILL HAPPEN HERE
-        X = data_buffer.T
-        y_pred = model.predict(X[None,:-2,:])
-        print(y_pred)
-
-        # BASED ON CLASSIFICATION, HUE API WILL BE CALLED HERE
-
-        # BASED ON CLASSIFICATION, tVNS API WILL BE CALLED HERE
-
-        # short sleep
-        time.sleep(0.1)
-
-except KeyboardInterrupt:
-    print("Data collection stopped.")
 
 #%%
+
+model = Pipeline(
+    [
+        (
+            "block_kernels",
+            BlockKernels(
+                block_size=[8, 3, 3],
+                metric=["rbf", "corr", 'rbf'],
+                shrinkage=[0.1, 0.1, 0.1],
+            ),
+        ),
+        ("classifier", SVC()),
+    ]
+)
+
+
+# fit on training data
+model.fit(X_train, y_train)
+
+# predict on test data
+y_pred = model.predict(X_test)
+
+# calculate accuracy
+accuracy = np.mean(y_pred == y_test)
+print(accuracy)
+
+
+# save the trained model to disk
+import joblib
+joblib.dump(model, '/Users/timnaher/Documents/PhD/Projects/agitation_tvns/data/model_eeg_acc_gyro.pkl')
+
+# %%
