@@ -74,6 +74,11 @@ eeg_epochs = np.array([epoch.iloc[:, :8].values for epoch in epochs])
 spectra = {cond: [] for cond in conditions}
 for epoch, label in zip(eeg_epochs, labels):
     f, Pxx = welch(epoch.T, fs=Fs, nperseg=250)
+    #fig, ax = plt.subplots()
+    #plt.plot(f[:40], Pxx.T[:40])
+    # add a title with the current condition
+    #ax.set_title(conditions[k])
+
     # save the spectrum in a dict, with the corresponding condition as key
     spectra[label].append(Pxx)
 
@@ -134,38 +139,97 @@ accuracies = []
 
 # %% Build pyriemann model to classify the data
 for k in range(33):
-    # covestimator = TimeDelayCovariances(delays=3, estimator='oas')
-    covestimator = Coherences(window=50, overlap=0.5, fs=250)
-
-    # Calculate the covariance matrices for each trial
-    cov_train = covestimator.transform(X_train)[:, :, :, k]
-
-    # Initialize the TSclassifier
+    # Calculate the covariance matrices for each trial on the training set
+    cov_train_full = covestimator.transform(X_train_full)[:, :, :, k]
+    
+    # Initialize and fit the TSclassifier
     clf = TSclassifier()
+    clf.fit(cov_train_full, y_train_full)
 
-    # Fit the classifier
-    clf.fit(cov_train, y_train)
+    # Calculate the covariance matrices for the validation set
+    cov_val = covestimator.transform(X_val)[:, :, :, k]
+    
+    # Predict the labels for the validation set
+    y_val_pred = clf.predict(cov_val)
 
-    # Calculate the covariance matrices for the test set
-    cov_test = covestimator.transform(X_test)[:, :, :, k]
+    # Calculate the validation accuracy
+    val_accuracy = np.mean(y_val_pred == y_val)
 
-    # Predict the labels for the test set
-    y_pred = clf.predict(cov_test)
+    # Save the validation accuracies in a list
+    val_accuracies.append(val_accuracy)
 
-    # Calculate the accuracy
-    accuracy = np.mean(y_pred == y_test)
+    # Print validation accuracy for each frequency
+    print("Validation Accuracy for k = {}: {:.2f}%".format(k, val_accuracy * 100))
 
-    # Print the accuracy
-    print("Accuracy for k = {}: {:.2f}%".format(k, accuracy * 100))
 
-    # save the accuraries in a list
-    accuracies.append(accuracy)
 
-# plot accuracy
-plt.figure()
-plt.plot(covestimator.freqs_, accuracies)
-plt.axhline(y=0.5, color='k', linestyle='--', label="chance level")
+
+# plot the data
+plt.plot(covestimator.freqs_, val_accuracies)
+
+# vertical x line at 50
+
+# add a horizontal line at 0.5 to show the chance level
+plt.axhline(y=0.5, color='k', linestyle='--')
+
 plt.xlabel('Frequency (Hz)')
-plt.ylabel('Accuracy hyperventilation vs. rest')
-plt.legend()
-plt.show()
+plt.ylabel('Accuracy Hyperventilation vs Rest')
+
+
+# identify the 2 best frequencies with the hightest accuracy
+best_val_freqs = np.argsort(val_accuracies)[-3:]
+
+# draw a vertical line at the best frequencies
+plt.plot(covestimator.freqs_[best_val_freqs], [0.5, 0.5, 0.5], 'ro')
+
+
+# %% Create a block diagonal matrix from the best frequencies
+from scipy.linalg import block_diag
+
+# Function to create a block diagonal matrix from selected frequency covariance matrices
+def create_block_diagonal_matrix(cov_matrices, best_freqs):
+    block_matrices = []
+    for i in best_freqs:
+        # Extract the covariance matrix corresponding to each of the best frequencies
+        block_matrices.append(cov_matrices[:, :, :, i])
+    
+    # Stack the covariance matrices along the diagonal for each trial
+    block_diag_cov = np.array([block_diag(*blocks) for blocks in zip(*block_matrices)])
+    
+    return block_diag_cov
+
+# Apply this to the training set
+cov_train_full_all_freqs = covestimator.transform(X_train_full)
+block_diag_cov_train = create_block_diagonal_matrix(cov_train_full_all_freqs, best_val_freqs)
+
+# Apply the same to the validation and test sets
+cov_val_all_freqs = covestimator.transform(X_val)
+block_diag_cov_val = create_block_diagonal_matrix(cov_val_all_freqs, best_val_freqs)
+
+cov_test_all_freqs = covestimator.transform(X_test)
+block_diag_cov_test = create_block_diagonal_matrix(cov_test_all_freqs, best_val_freqs)
+
+print("Block diagonal covariance matrix shape (training):", block_diag_cov_train.shape)
+
+# %% Build an estimator using the block diagonal matrices
+from pyriemann.classification import TSclassifier, FgMDM, SVC
+
+# Use a simple classifier like MDM (Mean of Riemannian distances) for the block diagonal covariance matrices
+clf_block_diag = SVC()
+
+# Fit the classifier on the training set
+clf_block_diag.fit(block_diag_cov_train, y_train_full)
+
+# Evaluate on the validation set
+y_val_pred_block_diag = clf_block_diag.predict(block_diag_cov_val)
+val_accuracy_block_diag = np.mean(y_val_pred_block_diag == y_val)
+
+print("Validation Accuracy with Block Diagonal Covariance Matrices: {:.2f}%".format(val_accuracy_block_diag * 100))
+
+# Evaluate on the test set
+y_test_pred_block_diag = clf_block_diag.predict(block_diag_cov_test)
+test_accuracy_block_diag = np.mean(y_test_pred_block_diag == y_test)
+
+print("Test Accuracy with Block Diagonal Covariance Matrices: {:.2f}%".format(test_accuracy_block_diag * 100))
+
+# %%
