@@ -128,27 +128,22 @@ print("Labels (y) shape:", y.shape)  # Expected shape: (n_trials,)
 
 # %% Split the data into training and testing sets
 
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Split the temp set into validation and test sets
+X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
 
-# Print the shapes of the training and testing sets
-print("X_train shape:", X_train.shape)
-print("y_train shape:", y_train.shape)
-
-accuracies = []
 
 # %% Build pyriemann model to classify the data
 for k in range(33):
     # Calculate the covariance matrices for each trial on the training set
     cov_train_full = covestimator.transform(X_train_full)[:, :, :, k]
-    
+
     # Initialize and fit the TSclassifier
     clf = TSclassifier()
     clf.fit(cov_train_full, y_train_full)
 
     # Calculate the covariance matrices for the validation set
     cov_val = covestimator.transform(X_val)[:, :, :, k]
-    
+
     # Predict the labels for the validation set
     y_val_pred = clf.predict(cov_val)
 
@@ -192,10 +187,10 @@ def create_block_diagonal_matrix(cov_matrices, best_freqs):
     for i in best_freqs:
         # Extract the covariance matrix corresponding to each of the best frequencies
         block_matrices.append(cov_matrices[:, :, :, i])
-    
+
     # Stack the covariance matrices along the diagonal for each trial
     block_diag_cov = np.array([block_diag(*blocks) for blocks in zip(*block_matrices)])
-    
+
     return block_diag_cov
 
 # Apply this to the training set
