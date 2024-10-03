@@ -1,5 +1,7 @@
 matplotlib
 numpy
+pandas
+sklearn
 psychopy
 pylsl
 pyserial
