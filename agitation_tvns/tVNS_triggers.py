@@ -97,7 +97,7 @@ try:
 except requests.exceptions.ConnectionError as e:
     print("tVNS device connection not found")
     print(e)
-# except
+    
 # set parameters
 customise_params(url, **tVNS_params)
 
