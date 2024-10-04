@@ -1,0 +1,7 @@
+README.md
+setup.py
+agitation_tvns/__init__.py
+agitation_tvns.egg-info/PKG-INFO
+agitation_tvns.egg-info/SOURCES.txt
+agitation_tvns.egg-info/dependency_links.txt
+agitation_tvns.egg-info/top_level.txt
