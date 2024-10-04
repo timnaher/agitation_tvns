@@ -3,8 +3,11 @@ import numpy as np
 import pylsl
 import time
 
+import socket
+
 # this block will got src
 import numpy as np
+import requests
 from sklearn.model_selection import train_test_split
 import itertools
 import os
@@ -24,6 +27,7 @@ from pyriemann.estimation import Shrinkage
 from pyriemann.classification import SVC
 from pyriemann.utils.covariance import cov_est_functions
 
+from agitation_tvns.tVNS_triggers import send_stimulation, customise_params, start_tvns
 from light_stimulation.light_stim import setup_light_stim, pulsate_light
 
 kernel_functions = [
@@ -276,6 +280,36 @@ try:
 except Exception as e:
     print("No light for stimulation was found, continuing without")
 
+
+# Set init parameters for tVNS stimulation
+tVNS_started = False
+tVNS_params = {
+    "minIntensity": 100,
+    "maxIntensity": 5000,
+    "impulseDuration": 250,
+    "frequency": 25,
+    "stimulationDuration": 28,
+    "pauseDuration": 32
+    }
+tVNS_intensity = 1200
+try:
+    # EEG trigger setup
+    socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    endPoint = ("127.0.0.1", 1000)
+    print(f"EEG trigger endPoint: {endPoint}")
+    # tVNS URL
+    url = 'http://localhost:51523/tvnsmanager/'
+    print(f"tVNS URL: {url}")
+    customise_params(url, **tVNS_params)
+    tVNS_started = start_tvns(url, endPoint)
+    time.sleep(5)
+except requests.exceptions.ConnectionError as e:
+    print("tVNS device connection not found")
+    print(e)
+except Exception as e:
+    print("an error occurred")
+    print(e)
+
 # Start collecting data in "-second buffers
 try:
     while True:
@@ -294,13 +328,16 @@ try:
         y_pred = model.predict(X[None,:-2,:])
         print(y_pred)
 
-        # BASED ON CLASSIFICATION, HUE API WILL BE CALLED HERE
-        if light:
-            pulsate_light(
-                light, breath_in_time, breath_out_time, min_brightness, max_brightness, pause_time, duration_light_stim
-                )
+        if y_pred == "hyperventilation":
+            # BASED ON CLASSIFICATION, HUE API WILL BE CALLED HERE
+            if light:
+                pulsate_light(
+                    light, breath_in_time, breath_out_time, min_brightness, max_brightness, pause_time, duration_light_stim
+                    )
 
-        # BASED ON CLASSIFICATION, tVNS API WILL BE CALLED HERE
+            # BASED ON CLASSIFICATION, tVNS API WILL BE CALLED HERE
+            if tVNS_started:
+                send_stimulation(url, tVNS_intensity, endPoint)
 
         # short sleep
         time.sleep(0.1)

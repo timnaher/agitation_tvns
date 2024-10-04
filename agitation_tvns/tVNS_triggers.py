@@ -28,23 +28,24 @@ import requests
 def start_tvns(url, endPoint):
     response = requests.post(url, data='manualSwitch')
     response = requests.post(url, data='startTreatment')
-    response = requests.post(url, data='startStimulation')
     socket.sendto(b"100", endPoint)
     print(f'tVNS start | EEG trigger 100')
+    return True
 
 
 def stop_tvns(url, endPoint):
-    response = requests.post(url, data='stopStimulation')
     response = requests.post(url, data='stopTreatment')
     socket.sendto(b"200", endPoint)
     print(f'tVNS stop | EEG trigger 200')
 
 
-def send_stimulation(url, intensity, endPoint, stim_trigger=3):
+def send_stimulation(url, intensity, endPoint, stim_trigger=3, duration=5):
+    # response = requests.post(url, data='startStimulation')
     response = requests.post(url, data=f'intensity {intensity}')  # set the intensity in the decvice
     socket.sendto(b"%d" % stim_trigger, endPoint)
     print(f'tVNS stimulation | EEG trigger {stim_trigger}')
-
+    time.sleep(duration)
+    response = requests.post(url, data='stopStimulation')
 
 def customise_params(
         url,
@@ -66,39 +67,39 @@ def customise_params(
 ##################
 
 # set initial config
-tVNS_params = {
-    "minIntensity": 100,
-    "maxIntensity": 5000,
-    "impulseDuration": 250,
-    "frequency": 25,
-    "stimulationDuration": 28,
-    "pauseDuration": 32
-    }
-tVNS_intensity = 1200
-
-try:
-    ## setup ##
-    # EEG trigger setup
-    socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    endPoint = ("127.0.0.1", 1000)
-    print(f"EEG trigger endPoint: {endPoint}")
-    # tVNS URL
-    url = 'http://localhost:51523/tvnsmanager/'
-    print(f"tVNS URL: {url}")
-    customise_params(url, **tVNS_params)
-
-    ## main functions ##
-    start_tvns(url, endPoint)
-    time.sleep(5)
-    send_stimulation(url, tVNS_intensity, endPoint)
-    time.sleep(5)
-    stop_tvns(url, endPoint)
-
-except requests.exceptions.ConnectionError as e:
-    print("tVNS device connection not found")
-    print(e)
-except Exception as e:
-    print("an error occurred")
-    print(e)
-    
+# tVNS_params = {
+#     "minIntensity": 100,
+#     "maxIntensity": 5000,
+#     "impulseDuration": 250,
+#     "frequency": 25,
+#     "stimulationDuration": 28,
+#     "pauseDuration": 32
+#     }
+# tVNS_intensity = 1200
+#
+# try:
+#     ## setup ##
+#     # EEG trigger setup
+#     socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#     endPoint = ("127.0.0.1", 1000)
+#     print(f"EEG trigger endPoint: {endPoint}")
+#     # tVNS URL
+#     url = 'http://localhost:51523/tvnsmanager/'
+#     print(f"tVNS URL: {url}")
+#     customise_params(url, **tVNS_params)
+#
+#     ## main functions ##
+#     start_tvns(url, endPoint)
+#     time.sleep(5)
+#     send_stimulation(url, tVNS_intensity, endPoint)
+#     time.sleep(5)
+#     stop_tvns(url, endPoint)
+#
+# except requests.exceptions.ConnectionError as e:
+#     print("tVNS device connection not found")
+#     print(e)
+# except Exception as e:
+#     print("an error occurred")
+#     print(e)
+#
 
