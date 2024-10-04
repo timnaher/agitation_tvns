@@ -268,7 +268,7 @@ min_brightness = 50  # The brightness for "breath out"
 max_brightness = 254  # The brightness for "breath in" (max brightness in Hue API)
 breath_in_time = 4  # Time (seconds) for breath in
 breath_out_time = 6  # Time (seconds) for breath out
-pause_time = 1
+pause_time = 1  # Pause time (seconds) between breathing in and breathing out, respectively
 duration_light_stim = 5  # breathing cycles until stimulation stops
 light = None
 try:
