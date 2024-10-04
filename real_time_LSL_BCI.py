@@ -23,6 +23,9 @@ from pyriemann.utils.covariance import covariances
 from pyriemann.estimation import Shrinkage
 from pyriemann.classification import SVC
 from pyriemann.utils.covariance import cov_est_functions
+
+from light_stimulation.light_stim import setup_light_stim, pulsate_light
+
 kernel_functions = [
     "linear", "poly", "polynomial", "rbf", "laplacian", "cosine"
 ]
@@ -260,6 +263,19 @@ print(f"Number of channels: {num_channels}")
 # 1-second buffer size based on the sampling rate
 buffer_size = sampling_rate*2
 
+# Set initial parameters for the calming light stimulation (breathing)
+min_brightness = 50  # The brightness for "breath out"
+max_brightness = 254  # The brightness for "breath in" (max brightness in Hue API)
+breath_in_time = 4  # Time (seconds) for breath in
+breath_out_time = 6  # Time (seconds) for breath out
+pause_time = 1
+duration_light_stim = 5  # breathing cycles until stimulation stops
+light = None
+try:
+    light = setup_light_stim()
+except Exception as e:
+    print("No light for stimulation was found, continuing without")
+
 # Start collecting data in "-second buffers
 try:
     while True:
@@ -279,6 +295,10 @@ try:
         print(y_pred)
 
         # BASED ON CLASSIFICATION, HUE API WILL BE CALLED HERE
+        if light:
+            pulsate_light(
+                light, breath_in_time, breath_out_time, min_brightness, max_brightness, pause_time, duration_light_stim
+                )
 
         # BASED ON CLASSIFICATION, tVNS API WILL BE CALLED HERE
 
