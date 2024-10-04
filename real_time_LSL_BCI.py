@@ -27,7 +27,7 @@ from pyriemann.estimation import Shrinkage
 from pyriemann.classification import SVC
 from pyriemann.utils.covariance import cov_est_functions
 
-from agitation_tvns.tVNS_triggers import send_stimulation, customise_params, start_tvns
+from agitation_tvns.tVNS_triggers import send_stimulation, customise_params, start_tvns, stop_tvns
 from light_stimulation.light_stim import setup_light_stim, pulsate_light
 
 kernel_functions = [
@@ -283,6 +283,8 @@ except Exception as e:
 
 # Set init parameters for tVNS stimulation
 tVNS_started = False
+url = None
+endPoint = None
 tVNS_params = {
     "minIntensity": 100,
     "maxIntensity": 5000,
@@ -301,7 +303,7 @@ try:
     url = 'http://localhost:51523/tvnsmanager/'
     print(f"tVNS URL: {url}")
     customise_params(url, **tVNS_params)
-    tVNS_started = start_tvns(url, endPoint)
+    tVNS_started = start_tvns(url, socket, endPoint)
     time.sleep(5)
 except requests.exceptions.ConnectionError as e:
     print("tVNS device connection not found")
@@ -337,12 +339,14 @@ try:
 
             # BASED ON CLASSIFICATION, tVNS API WILL BE CALLED HERE
             if tVNS_started:
-                send_stimulation(url, tVNS_intensity, endPoint)
+                send_stimulation(url, socket, tVNS_intensity, endPoint)
 
         # short sleep
         time.sleep(0.1)
 
 except KeyboardInterrupt:
     print("Data collection stopped.")
+    if tVNS_started:
+        stop_tvns(url, socket, endPoint)
 
 #%%

@@ -20,12 +20,12 @@ When a treatment is complete, send POST request with body 'stopTreatment'
 to end a treatment and record a log.
 '''
 
-import socket
 import time
+
 import requests
 
 
-def start_tvns(url, endPoint):
+def start_tvns(url, socket, endPoint):
     response = requests.post(url, data='manualSwitch')
     response = requests.post(url, data='startTreatment')
     socket.sendto(b"100", endPoint)
@@ -33,19 +33,20 @@ def start_tvns(url, endPoint):
     return True
 
 
-def stop_tvns(url, endPoint):
+def stop_tvns(url, socket, endPoint):
     response = requests.post(url, data='stopTreatment')
     socket.sendto(b"200", endPoint)
     print(f'tVNS stop | EEG trigger 200')
 
 
-def send_stimulation(url, intensity, endPoint, stim_trigger=3, duration=5):
+def send_stimulation(url, socket, intensity, endPoint, stim_trigger=3, duration=5):
     # response = requests.post(url, data='startStimulation')
     response = requests.post(url, data=f'intensity {intensity}')  # set the intensity in the decvice
     socket.sendto(b"%d" % stim_trigger, endPoint)
     print(f'tVNS stimulation | EEG trigger {stim_trigger}')
     time.sleep(duration)
     response = requests.post(url, data='stopStimulation')
+
 
 def customise_params(
         url,
@@ -102,4 +103,3 @@ def customise_params(
 #     print("an error occurred")
 #     print(e)
 #
-
