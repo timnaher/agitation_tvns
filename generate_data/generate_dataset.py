@@ -15,7 +15,7 @@ Fs = 250  # Sampling frequency
 trial_duration = 20 * Fs  # 20 seconds in samples
 trigger_start = 100  # Trigger for trial start
 trigger_end = 200  # Trigger for trial end
-duration = 250 * 20
+duration = Fs * 20
 
 # Load the data
 data_path = '/Users/timnaher/Documents/PhD/Projects/agitation_tvns/data/rest_hyper_incomplete.csv'
@@ -25,7 +25,7 @@ data = pd.DataFrame()
 for f in files:
     fdata = pd.read_csv(os.path.join(data_path, f), header=None)
     data = pd.concat([data, fdata])
-# Add column names
+# Add column namesobs
 data.columns = ['EEG1', 'EEG2', 'EEG3', 'EEG4', 'EEG5', 'EEG6', 'EEG7', 'EEG8', 'AccX', 'AccY', 'AccZ', 'GyroX',
                 'GyroY', 'GyroZ', 'Trigger']
 
