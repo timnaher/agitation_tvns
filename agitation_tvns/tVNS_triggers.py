@@ -28,6 +28,7 @@ import requests
 def start_tvns(url, socket, endPoint):
     response = requests.post(url, data='manualSwitch')
     response = requests.post(url, data='startTreatment')
+    response = requests.post(url, data='stopStimulation')
     socket.sendto(b"100", endPoint)
     print(f'tVNS start | EEG trigger 100')
     return True
